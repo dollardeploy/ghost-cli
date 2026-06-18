@@ -1,6 +1,6 @@
 {
   "name": "@dollardeploy/ghost-cli",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Ghost Admin API client and content/members management CLI (zero dependencies, uses native fetch)",
   "main": "api.js",
   "bin": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dollardeploy/ghost-cli.git"
+    "url": "git+https://github.com/dollardeploy/ghost-cli.git"
   },
   "homepage": "https://github.com/dollardeploy/ghost-cli",
   "files": [
@@ -26,7 +26,13 @@
     "cli"
   ],
   "author": "DollarDeploy",
-  "license": "Private",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "npm:publish": "npm publish --access public"
+  },
   "engines": {
     "node": ">=22.0.0"
   }
