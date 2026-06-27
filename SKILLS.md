@@ -1,6 +1,6 @@
 ---
 name: ghost-cli
-description: Use when managing a Ghost site from the terminal — listing/adding/removing members, subscribing or unsubscribing newsletters, or listing/adding/editing blog, docs, and release-note (changelog) posts. Triggers on "ghost-cli members", "ghost-cli post", "newsletter subscriber", "add blog post", "edit docs post", "publish changelog", "markdown import to ghost".
+description: Use when managing a Ghost site from the terminal — listing/adding/removing members, subscribing or unsubscribing newsletters, listing/adding/editing blog, docs, and release-note (changelog) posts, or uploading images/cover art. Triggers on "ghost-cli members", "ghost-cli post", "ghost-cli image upload", "newsletter subscriber", "add blog post", "edit docs post", "publish changelog", "upload cover image", "markdown import to ghost".
 ---
 
 # Ghost CLI (ghost-cli)
@@ -13,8 +13,9 @@ dependencies — uses native Node `fetch` and `crypto` against the Ghost Admin A
 Set credentials once (or pass `--url` / `--key` per command):
 
 ```bash
-export GHOST_API_URL="https://example.com/ghost/api/admin/"
+export GHOST_API_URL="https://example.com/ghost/api/admin/"   # site root or admin URL, trailing slash OK
 export GHOST_ADMIN_API_KEY="<id>:<secret>"   # Settings → Advanced → Integrations → custom integration
+# GHOST_API_VERSION is optional; defaults to v5.0
 ```
 
 Run from `tools/ghost-cli/`:
@@ -61,6 +62,8 @@ Content sections are separated by internal tags — pick one with a **section fl
 | Add with cover + meta           | `ghost-cli post add --blog --title "X" --markdown ./x.md --cover https://cdn/x.png --meta-description "..."` |
 | Edit by id or slug              | `ghost-cli post edit install --title "Installation" --meta-description "How to install"`                     |
 | Move/append a section on edit   | `ghost-cli post edit my-slug --blog` (keeps existing tags)                                                   |
+| Add with uploaded local cover   | `ghost-cli post add --blog --title "Launch" --markdown ./x.md --cover ./cover.png`                           |
+| Upload an image, print its URL  | `ghost-cli image upload ./cover.png`                                                                         |
 
 Post fields: `--title`, `--markdown`/`--html`/`--content`, `--meta-description`,
 `--cover` (feature image), `--excerpt`, `--tags a,b`, `--status draft|published`.
@@ -70,8 +73,9 @@ Post fields: `--title`, `--markdown`/`--html`/`--content`, `--meta-description`,
 - **Markdown import** works via a Mobiledoc markdown card — no Markdown parser
   needed; Ghost renders it. `--markdown`/`--html` accept a **file path or inline
   text**.
-- **`--cover` is a URL only.** This client has no multipart/`FormData` upload, so
-  it cannot upload a local image — pass an already-hosted URL.
+- **`--cover` takes a URL or a local file.** An `http(s)` URL is used as-is; a
+  local image path is uploaded to Ghost first and replaced with the hosted URL.
+  Use `image upload <file>` to upload without attaching to a post.
 - **`post edit`** reads the post first (needed for Ghost's `updated_at` collision
   check) and **preserves existing tags**, appending any section/`--tags` you add.
 - **`post add` defaults to `--status draft`.** Pass `--status published` to publish.
@@ -91,5 +95,7 @@ Post fields: `--title`, `--markdown`/`--html`/`--content`, `--meta-description`,
 
 `api.js` can be required directly for scripting beyond these commands
 (`posts`, `pages`, `tags`, `newsletters`, `users`, `site`, `config`,
-`themes.activate`). See `README.md` for the full API surface. Upload/multipart
-endpoints are not included.
+`themes.activate`, `images.upload`). It defaults `version` to `v5.0` and accepts
+a site root or full Admin API URL. See `README.md` for the full API surface.
+`images.upload(pathOrBuffer)` is the only multipart endpoint; theme uploads are
+not included.
