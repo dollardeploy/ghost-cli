@@ -22,10 +22,7 @@ The CLI reads connection details from flags or environment variables:
 | API version   | `--version` | `GHOST_API_VERSION`   | `v5.0`       |
 
 The site URL may be either the site root (`https://example.com`) or a full Admin
-API URL (`https://example.com/ghost/api/admin/`), with or without a trailing
-slash — the client trims the `/ghost/api/admin/` path for you. The API version
-defaults to `v5.0` when omitted (both on the CLI and when constructing `api.js`
-directly), so you rarely need to set it.
+API URL (`https://example.com/ghost/api/admin/`) — only the origin is used.
 
 The **Admin API key** has the form `id:secret` and is created in Ghost under
 **Settings → Advanced → Integrations → Add custom integration**.
@@ -68,7 +65,6 @@ ghost-cli members remove jane@example.com
 | `post list`              | List posts (scope with a section flag) |
 | `post add --title "..."` | Create a post                          |
 | `post edit <id\|slug>`   | Update an existing post                |
-| `image upload <file>`    | Upload a local image, print its URL    |
 
 **Section flags** map to the internal tags that separate content on the site:
 
@@ -83,26 +79,26 @@ tag (existing tags are preserved on edit).
 
 **Post options:**
 
-| Option                        | Description                                                                             |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| `--title <title>`             | Post title (required for `add`)                                                         |
-| `--markdown <file\|text>`     | Body from a Markdown **file path** or inline Markdown text                              |
-| `--html <file\|text>`         | Body from an HTML file path or inline HTML (sent with `?source=html`)                   |
-| `--content <text>`            | Inline Markdown body (alias of `--markdown text`)                                       |
-| `--meta-description <text>`   | SEO meta description                                                                    |
-| `--cover <url\|file>`         | Cover image (`feature_image`): an http(s) URL, or a local file that is uploaded for you |
-| `--excerpt <text>`            | Custom excerpt                                                                          |
-| `--tags <a,b,c>`              | Extra tags, added alongside the section tag                                             |
-| `--status <draft\|published>` | Status (default: `draft`)                                                               |
+| Option                        | Description                                                           |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `--title <title>`             | Post title (required for `add`)                                       |
+| `--markdown <file\|text>`     | Body from a Markdown **file path** or inline Markdown text            |
+| `--html <file\|text>`         | Body from an HTML file path or inline HTML (sent with `?source=html`) |
+| `--content <text>`            | Inline Markdown body (alias of `--markdown text`)                     |
+| `--meta-description <text>`   | SEO meta description                                                  |
+| `--cover <url>`               | Cover image (`feature_image`) — **URL only** (see note)               |
+| `--excerpt <text>`            | Custom excerpt                                                        |
+| `--tags <a,b,c>`              | Extra tags, added alongside the section tag                           |
+| `--status <draft\|published>` | Status (default: `draft`)                                             |
 
 ```bash
 # Import a Markdown doc as a published docs page
 ghost-cli post add --docs --title "Install guide" --markdown ./install.md --status published
 
-# New blog post from inline Markdown, uploading a local cover image
+# New blog post from inline Markdown with a cover and meta description
 ghost-cli post add --blog --title "We launched" \
   --content "Today we **shipped** it." \
-  --cover ./launch.png \
+  --cover "https://cdn.example.com/launch.png" \
   --meta-description "Our launch announcement"
 
 # List and edit
@@ -110,17 +106,9 @@ ghost-cli post list --docs --limit 20
 ghost-cli post edit install-guide --title "Installation guide" --meta-description "How to install"
 ```
 
-### Images
-
-`--cover` accepts either an already-hosted `http(s)` URL (used as-is) or a **local
-image file**, which is uploaded to Ghost first and swapped for the hosted URL. To
-upload without attaching it to a post, use `image upload`:
-
-```bash
-ghost-cli image upload ./cover.png      # prints https://site/content/images/.../cover.png
-```
-
-Supported types: PNG, JPEG, GIF, WebP, SVG.
+> **Cover images are set by URL only.** This client intentionally does not use
+> `FormData`/multipart, so it cannot upload a local image file. Pass `--cover`
+> a URL that is already hosted (e.g. an existing Ghost/CDN image).
 
 ### Auto-pagination (`list`)
 
@@ -140,26 +128,22 @@ handy for piping into `jq` or feeding other tools.
 const GhostAdminAPI = require("./api");
 
 const api = GhostAdminAPI({
-  url: process.env.GHOST_API_URL, // site root or full /ghost/api/admin/ URL
-  key: process.env.GHOST_ADMIN_API_KEY
-  // version defaults to "v5.0"
+  url: "https://example.com",
+  key: process.env.GHOST_ADMIN_API_KEY,
+  version: "v5.0"
 });
 
 const posts = await api.posts.browse({ limit: 5, filter: "tag:hash-docs" });
 console.log(posts);
-
-// Upload an image and get its hosted URL
-const { url } = await api.images.upload("./cover.png");
 ```
 
 The client exposes the standard Ghost Admin resources (`posts`, `pages`, `tags`,
 `webhooks`, `members`, `users`, `newsletters`) with `browse`, `read`, `add`,
-`edit`, and `delete` methods, plus `site.read()`, `config.read()`,
-`themes.activate(name)`, and `images.upload(pathOrBuffer)`.
+`edit`, and `delete` methods, plus `site.read()`, `config.read()`, and
+`themes.activate(name)`.
 
-> **Note:** `images.upload` uses native `fetch` + `FormData` + `Blob` (Node 18+)
-> for the multipart request — still no external dependencies. Theme uploads are
-> not included.
+> **Note:** file/image/theme **upload** endpoints are intentionally omitted —
+> this client does not use `FormData`/multipart requests.
 
 ## How it works
 

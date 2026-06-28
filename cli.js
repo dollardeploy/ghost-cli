@@ -35,9 +35,6 @@ Post commands:
   post add --title "..."           Create a post
   post edit <id|slug>              Update an existing post
 
-Image commands:
-  image upload <file>              Upload a local image, print its hosted URL
-
 Section flags (post commands):
   --blog                           Target the blog (#blog tag)
   --docs                           Target the docs (#docs tag)
@@ -63,8 +60,7 @@ Post options:
   --html <file|text>               Body from an HTML file path or inline text
   --content <text>                 Inline Markdown body (alias of --markdown text)
   --meta-description <text>        SEO meta description
-  --cover <url|file>               Cover image (feature_image): an http(s) URL,
-                                   or a local file that is uploaded for you
+  --cover <url>                    Cover image (feature_image) URL
   --excerpt <text>                 Custom excerpt
   --tags <a,b,c>                   Extra comma separated tags (added to the section tag)
   --status <draft|published>       Post status (default: draft)
@@ -81,9 +77,8 @@ Examples:
   ghost-cli members add jane@example.com --name "Jane" --labels vip
   ghost-cli post list --docs --limit 20
   ghost-cli post add --docs --title "Install guide" --markdown ./install.md --status published
-  ghost-cli post add --blog --title "Launch" --content "We **shipped**!" --cover ./cover.png
-  ghost-cli post edit my-post-slug --cover ./cover.png
-  ghost-cli image upload ./cover.png`;
+  ghost-cli post add --blog --title "Launch" --content "We **shipped**!" --cover https://img/x.png
+  ghost-cli post edit my-post-slug --title "New title" --meta-description "Updated summary"`;
 
 function parseArgs(argv) {
   const positionals = [];
@@ -135,9 +130,13 @@ function parseArgs(argv) {
   };
 }
 
+function deriveSiteUrl(rawUrl) {
+  // Accepts either a site root or a full Admin API URL and returns the origin.
+  const parsed = new URL(rawUrl);
+  return parsed.origin;
+}
+
 function createClient(options) {
-  // The client itself accepts a site root or a full Admin API URL (with or
-  // without a trailing slash) and defaults the version, so just pass them along.
   const rawUrl = options.url || process.env.GHOST_API_URL;
   const key = options.key || process.env.GHOST_ADMIN_API_KEY;
   const version = options.version || process.env.GHOST_API_VERSION || "v5.0";
@@ -149,7 +148,7 @@ function createClient(options) {
     throw new Error("Missing Admin API key. Pass --key or set GHOST_ADMIN_API_KEY.");
   }
 
-  return GhostAdminAPI({ url: rawUrl, key, version });
+  return GhostAdminAPI({ url: deriveSiteUrl(rawUrl), key, version });
 }
 
 function resolveSection(options) {
@@ -434,20 +433,6 @@ function parseTagList(value) {
     .map(name => ({ name }));
 }
 
-// --cover accepts an http(s) URL (used as-is) or a local image file, which is
-// uploaded to Ghost first and replaced with the hosted URL.
-async function resolveCoverImage(api, cover) {
-  if (/^https?:\/\//i.test(cover)) {
-    return cover;
-  }
-  if (!fs.existsSync(cover)) {
-    throw new Error(`Cover "${cover}" is neither an http(s) URL nor an existing file path.`);
-  }
-  const uploaded = await api.images.upload(cover);
-  logger.info(`Uploaded cover image → ${uploaded.url}`);
-  return uploaded.url;
-}
-
 async function findPost(api, idOrSlug) {
   const isId = /^[0-9a-f]{24}$/.test(idOrSlug);
   const selector = isId ? { id: idOrSlug } : { slug: idOrSlug };
@@ -505,9 +490,6 @@ async function postAdd(api, options) {
   }
 
   const { fields, queryParams } = resolveContent(options);
-  if (options.cover) {
-    options.cover = await resolveCoverImage(api, options.cover);
-  }
   const data = { title: options.title, status: options.status || "draft", ...fields };
   applyPostFields(data, options);
 
@@ -535,9 +517,6 @@ async function postEdit(api, idOrSlug, options) {
   const existing = await findPost(api, idOrSlug);
 
   const { fields, queryParams } = resolveContent(options);
-  if (options.cover) {
-    options.cover = await resolveCoverImage(api, options.cover);
-  }
   // updated_at is required by Ghost for optimistic concurrency on edits.
   const data = { id: existing.id, updated_at: existing.updated_at, ...fields };
   applyPostFields(data, options);
@@ -577,20 +556,6 @@ async function postEdit(api, idOrSlug, options) {
   logger.info(`Updated post "${post.title}" (${post.status}) — ${post.url || post.slug}`);
 }
 
-// ---- Images ----------------------------------------------------------------
-
-async function imageUpload(api, file, options) {
-  if (!fs.existsSync(file)) {
-    throw new Error(`File not found: ${file}`);
-  }
-  const uploaded = await api.images.upload(file);
-  if (options.json) {
-    logger.info(JSON.stringify(uploaded, null, 2));
-    return;
-  }
-  logger.info(uploaded.url);
-}
-
 // ---- Dispatch --------------------------------------------------------------
 
 const COMMANDS = {
@@ -614,9 +579,6 @@ const COMMANDS = {
     list: { run: (api, args, options) => postList(api, options) },
     add: { run: (api, args, options) => postAdd(api, options) },
     edit: { needsArg: "id|slug", run: (api, args, options) => postEdit(api, args[0], options) }
-  },
-  image: {
-    upload: { needsArg: "file", run: (api, args, options) => imageUpload(api, args[0], options) }
   }
 };
 
@@ -631,7 +593,7 @@ async function main() {
   const groupCommands = COMMANDS[group];
   if (!groupCommands) {
     throw new Error(
-      `Unknown group "${group}". Expected "members", "post" or "image". See "ghost-cli --help".`
+      `Unknown group "${group}". Expected "members" or "post". See "ghost-cli --help".`
     );
   }
 
