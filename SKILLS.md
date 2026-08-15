@@ -57,7 +57,7 @@ Content sections are separated by internal tags — pick one with a **section fl
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | List a section                  | `ghost-cli post list --docs --limit 20`                                                                      |
 | List release notes              | `ghost-cli post list --changelog`                                                                            |
-| Add docs page (Markdown file)   | `ghost-cli post add --docs --title "Install" --slug install --markdown ./install.md --status published`      |
+| Add docs page (Markdown file)   | `ghost-cli post add --docs --title "Install" --markdown ./install.md --status published`                     |
 | Add blog post (inline Markdown) | `ghost-cli post add --blog --title "Launch" --content "We **shipped**!"`                                     |
 | Add with cover + meta           | `ghost-cli post add --blog --title "X" --markdown ./x.md --cover https://cdn/x.png --meta-description "..."` |
 | Edit by id or slug              | `ghost-cli post edit install --title "Installation" --meta-description "How to install"`                     |
@@ -65,16 +65,11 @@ Content sections are separated by internal tags — pick one with a **section fl
 | Add with uploaded local cover   | `ghost-cli post add --blog --title "Launch" --markdown ./x.md --cover ./cover.png`                           |
 | Upload an image, print its URL  | `ghost-cli image upload ./cover.png`                                                                         |
 
-Post fields: `--title`, `--slug`, `--markdown`/`--html`/`--content`,
-`--meta-description`, `--cover` (feature image), `--excerpt`, `--tags a,b`,
-`--status draft|published`.
+Post fields: `--title`, `--markdown`/`--html`/`--content`, `--meta-description`,
+`--cover` (feature image), `--excerpt`, `--tags a,b`, `--status draft|published`.
 
 ## Key Behaviors
 
-- **Use `--markdown` (or `--content`) instead of `--html`.** Markdown is stored as a
-  native Ghost markdown card and stays editable in the Ghost editor; `--html` is
-  wrapped in an HTML card that is awkward to edit later. Flag when you need to use
-   `--html` for human approval.
 - **Markdown import** works via a Mobiledoc markdown card — no Markdown parser
   needed; Ghost renders it. `--markdown`/`--html` accept a **file path or inline
   text**.
@@ -83,9 +78,6 @@ Post fields: `--title`, `--slug`, `--markdown`/`--html`/`--content`,
   Use `image upload <file>` to upload without attaching to a post.
 - **`post edit`** reads the post first (needed for Ghost's `updated_at` collision
   check) and **preserves existing tags**, appending any section/`--tags` you add.
-- **`--slug` sets the URL slug explicitly.** Without it Ghost derives the slug
-  from the title. Pass `--slug` when the URL must be stable or match a link
-  elsewhere (e.g. an in-app help link); on `post edit` it renames the slug.
 - **`post add` defaults to `--status draft`.** Pass `--status published` to publish.
 - **Auto-pagination:** `--limit` over 100 (or `all`) transparently pages the API
   (Ghost caps each request at 100).

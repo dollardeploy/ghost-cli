@@ -59,7 +59,6 @@ Member options:
 
 Post options:
   --title <title>                  Post title
-  --slug <slug>                    URL slug (default: derived from title by Ghost)
   --markdown <file|text>           Body from a Markdown file path or inline text
   --html <file|text>               Body from an HTML file path or inline text
   --content <text>                 Inline Markdown body (alias of --markdown text)
@@ -81,7 +80,7 @@ Examples:
   ghost-cli members list --limit all
   ghost-cli members add jane@example.com --name "Jane" --labels vip
   ghost-cli post list --docs --limit 20
-  ghost-cli post add --docs --title "Install guide" --slug install-guide --markdown ./install.md --status published
+  ghost-cli post add --docs --title "Install guide" --markdown ./install.md --status published
   ghost-cli post add --blog --title "Launch" --content "We **shipped**!" --cover ./cover.png
   ghost-cli post edit my-post-slug --cover ./cover.png
   ghost-cli image upload ./cover.png`;
@@ -411,9 +410,6 @@ function resolveContent(options) {
 function applyPostFields(data, options) {
   if (options.title) {
     data.title = options.title;
-  }
-  if (options.slug) {
-    data.slug = String(options.slug);
   }
   const metaDescription = options["meta-description"] || options.meta;
   if (metaDescription) {

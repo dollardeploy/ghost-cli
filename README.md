@@ -86,7 +86,6 @@ tag (existing tags are preserved on edit).
 | Option                        | Description                                                                             |
 | ----------------------------- | --------------------------------------------------------------------------------------- |
 | `--title <title>`             | Post title (required for `add`)                                                         |
-| `--slug <slug>`               | URL slug (default: Ghost derives it from the title)                                     |
 | `--markdown <file\|text>`     | Body from a Markdown **file path** or inline Markdown text                              |
 | `--html <file\|text>`         | Body from an HTML file path or inline HTML (sent with `?source=html`)                   |
 | `--content <text>`            | Inline Markdown body (alias of `--markdown text`)                                       |
@@ -97,8 +96,8 @@ tag (existing tags are preserved on edit).
 | `--status <draft\|published>` | Status (default: `draft`)                                                               |
 
 ```bash
-# Import a Markdown doc as a published docs page with a fixed slug
-ghost-cli post add --docs --title "Install guide" --slug install-guide --markdown ./install.md --status published
+# Import a Markdown doc as a published docs page
+ghost-cli post add --docs --title "Install guide" --markdown ./install.md --status published
 
 # New blog post from inline Markdown, uploading a local cover image
 ghost-cli post add --blog --title "We launched" \
