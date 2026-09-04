@@ -2,6 +2,10 @@
 
 const fs = require("fs");
 
+if (fs.existsSync(".env.production")) {
+  process.loadEnvFile(".env.production");
+}
+
 const GhostAdminAPI = require("./api");
 
 const logger = console;

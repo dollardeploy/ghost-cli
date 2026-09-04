@@ -35,6 +35,10 @@ export GHOST_API_URL="https://example.com/ghost/api/admin/"
 export GHOST_ADMIN_API_KEY="0123...abcd:0123...def0"
 ```
 
+Alternatively, drop these in a `.env.production` file in the directory you run
+from — the CLI loads it automatically on startup. Variables already set in the
+environment always take precedence over the file.
+
 ## CLI Usage
 
 ```bash
