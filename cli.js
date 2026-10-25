@@ -2,8 +2,13 @@
 
 const fs = require("fs");
 
-if (fs.existsSync(".env.production")) {
-  process.loadEnvFile(".env.production");
+// .env.production from the current directory, else the repo root, so the tool also
+// works when run by absolute path from elsewhere (e.g. a Gene program's scratch dir).
+const envFile = [".env.production", require("node:path").join(__dirname, "../..", ".env.production")].find(
+  file => fs.existsSync(file)
+);
+if (envFile) {
+  process.loadEnvFile(envFile);
 }
 
 const GhostAdminAPI = require("./api");
