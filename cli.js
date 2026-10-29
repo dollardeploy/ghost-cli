@@ -2,13 +2,23 @@
 
 const fs = require("fs");
 
-// .env.production from the current directory, else the repo root, so the tool also
-// works when run by absolute path from elsewhere (e.g. a Gene program's scratch dir).
-const envFile = [".env.production", require("node:path").join(__dirname, "../..", ".env.production")].find(
-  file => fs.existsSync(file)
-);
-if (envFile) {
-  process.loadEnvFile(envFile);
+// Nearest .env.production at or above the current directory, else at or above this script.
+// The file lives only in the main checkout, so this also works from a Gene workspace under .gene/
+{
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const findUp = dir => {
+    const file = path.join(dir, ".env.production");
+    if (fs.existsSync(file)) {
+      return file;
+    }
+    const parent = path.dirname(dir);
+    return parent === dir ? undefined : findUp(parent);
+  };
+  const envFile = findUp(process.cwd()) ?? findUp(__dirname);
+  if (envFile) {
+    process.loadEnvFile(envFile);
+  }
 }
 
 const GhostAdminAPI = require("./api");
