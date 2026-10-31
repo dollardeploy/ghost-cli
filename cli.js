@@ -80,7 +80,8 @@ Member options:
 Post options:
   --title <title>                  Post title
   --slug <slug>                    URL slug (default: derived from title by Ghost)
-  --markdown <file|text>           Body from a Markdown file path or inline text
+  --markdown <file|text>           Body from a Markdown file path or inline text; each
+                                   "## " section becomes its own card (add images between)
   --html <file|text>               Body from an HTML file path or inline text
   --content <text>                 Inline Markdown body (alias of --markdown text)
   --append-markdown <file|text>    [post edit] Add a Markdown card at the end of the
@@ -392,13 +393,34 @@ async function membersUnsubscribe(api, email, options) {
 
 // ---- Posts -----------------------------------------------------------------
 
+// Splits Markdown into sections at each "## " heading (outside fenced code blocks), so every
+// section becomes its own card and images can be inserted between them in the Ghost editor.
+function splitMarkdownSections(markdown) {
+  const sections = [[]];
+  let inFence = false;
+  for (const line of String(markdown).split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+    }
+    if (!inFence && /^## /.test(line) && sections[sections.length - 1].length) {
+      sections.push([]);
+    }
+    sections[sections.length - 1].push(line);
+  }
+  return sections.map(lines => lines.join("\n").trim()).filter(Boolean);
+}
+
 function buildMarkdownMobiledoc(markdown) {
+  const cards = splitMarkdownSections(markdown).map(section => [
+    "markdown",
+    { cardName: "markdown", markdown: section }
+  ]);
   return JSON.stringify({
     version: "0.3.1",
     atoms: [],
-    cards: [["markdown", { cardName: "markdown", markdown }]],
+    cards,
     markups: [],
-    sections: [[10, 0]]
+    sections: cards.map((card, index) => [10, index])
   });
 }
 
@@ -411,30 +433,37 @@ function readInput(value) {
 }
 
 // The Markdown source when the body is a single Markdown card (posts made by this CLI)
+// The Markdown source when the body is only Markdown cards (posts made by this CLI), else null
 function markdownSource(post) {
   const doc = post.mobiledoc ? JSON.parse(post.mobiledoc) : null;
-  if (doc && doc.cards.length === 1 && doc.cards[0][0] === "markdown") {
-    return doc.cards[0][1].markdown;
-  }
   const lexical = post.lexical ? JSON.parse(post.lexical) : null;
-  const children = lexical ? lexical.root.children : [];
-  if (children.length === 1 && children[0].type === "markdown") {
-    return children[0].markdown;
-  }
-  return null;
+  const parts = doc
+    ? doc.sections.map(([type, index]) =>
+        type === 10 && doc.cards[index][0] === "markdown" ? doc.cards[index][1].markdown : null
+      )
+    : (lexical ? lexical.root.children : []).map(child =>
+        child.type === "markdown" ? child.markdown : null
+      );
+  return parts.length && parts.every(part => part !== null) ? parts.join("\n\n") : null;
 }
 
-// Adds a Markdown card after the existing body, in whichever format the post is stored
+// Adds Markdown cards (one per "## " section) after the existing body, in whichever
+// format the post is stored
 function appendMarkdownCard(post, markdown) {
+  const sections = splitMarkdownSections(markdown);
   if (post.lexical) {
     const lexical = JSON.parse(post.lexical);
-    lexical.root.children.push({ type: "markdown", version: 1, markdown });
+    sections.forEach(section =>
+      lexical.root.children.push({ type: "markdown", version: 1, markdown: section })
+    );
     return { lexical: JSON.stringify(lexical) };
   }
   if (post.mobiledoc) {
     const doc = JSON.parse(post.mobiledoc);
-    doc.cards.push(["markdown", { cardName: "markdown", markdown }]);
-    doc.sections.push([10, doc.cards.length - 1]);
+    sections.forEach(section => {
+      doc.cards.push(["markdown", { cardName: "markdown", markdown: section }]);
+      doc.sections.push([10, doc.cards.length - 1]);
+    });
     return { mobiledoc: JSON.stringify(doc) };
   }
   throw new Error("Post has neither a lexical nor a mobiledoc body to append to");

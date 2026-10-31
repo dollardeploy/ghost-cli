@@ -77,9 +77,10 @@ Post fields: `--title`, `--slug`, `--markdown`/`--html`/`--content`,
   native Ghost markdown card and stays editable in the Ghost editor; `--html` is
   wrapped in an HTML card that is awkward to edit later. Flag when you need to use
    `--html` for human approval.
-- **Markdown import** works via a Mobiledoc markdown card — no Markdown parser
-  needed; Ghost renders it. `--markdown`/`--html` accept a **file path or inline
-  text**.
+- **Markdown import** works via Mobiledoc markdown cards — no Markdown parser
+  needed; Ghost renders them. Each `## ` section becomes its own card (never split
+  inside a code fence), so images can be inserted between sections in the editor.
+  `--markdown`/`--html` accept a **file path or inline text**.
 - **`--cover` takes a URL or a local file.** An `http(s)` URL is used as-is; a
   local image path is uploaded to Ghost first and replaced with the hosted URL.
   Use `image upload <file>` to upload without attaching to a post.

@@ -174,8 +174,9 @@ The client exposes the standard Ghost Admin resources (`posts`, `pages`, `tags`,
   Admin API expects.
 - **Transport** — every request goes through the native `fetch`. Query
   parameters are comma-joined and URI encoded the way Ghost's NQL filters need.
-- **Markdown import** — Markdown is wrapped in a Mobiledoc _markdown card_, which
-  Ghost renders to its native format on save (no external Markdown parser needed).
+- **Markdown import** — Markdown is split at each `## ` heading (outside code fences)
+  into Mobiledoc _markdown cards_, one per section, which Ghost renders on save (no
+  external Markdown parser needed). Insert images between the cards in the editor.
 - **Edits** — `post edit` first reads the post to obtain its `updated_at`, which
   Ghost requires for optimistic-concurrency collision detection.
 - **Errors** — non-2xx responses are unwrapped into a normal `Error` whose
