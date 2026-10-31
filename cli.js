@@ -469,6 +469,21 @@ function appendMarkdownCard(post, markdown) {
   throw new Error("Post has neither a lexical nor a mobiledoc body to append to");
 }
 
+// Replaces the body with Markdown cards (one per "## " section), keeping the post's format:
+// Ghost stores newer posts as Lexical and ignores a Mobiledoc body sent for them
+function replaceMarkdownBody(post, markdown) {
+  if (!post.lexical) {
+    return { mobiledoc: buildMarkdownMobiledoc(markdown) };
+  }
+  const lexical = JSON.parse(post.lexical);
+  lexical.root.children = splitMarkdownSections(markdown).map(section => ({
+    type: "markdown",
+    version: 1,
+    markdown: section
+  }));
+  return { lexical: JSON.stringify(lexical) };
+}
+
 // Returns the content-related fields and query params for a post add/edit.
 function resolveContent(options) {
   if (options.html) {
@@ -641,15 +656,24 @@ async function postGet(api, idOrSlug, options) {
 
 async function postEdit(api, idOrSlug, options) {
   const appendMarkdown = options["append-markdown"];
+  const markdown = options.markdown ? readInput(options.markdown) : options.content;
+  const needsBody = appendMarkdown || (markdown && !options.html);
   const existing = await findPost(
     api,
     idOrSlug,
-    appendMarkdown ? { formats: "mobiledoc,lexical" } : {}
+    needsBody ? { formats: "mobiledoc,lexical" } : {}
   );
 
-  const { fields, queryParams } = appendMarkdown
-    ? { fields: appendMarkdownCard(existing, readInput(appendMarkdown)), queryParams: {} }
-    : resolveContent(options);
+  const content = () => {
+    if (appendMarkdown) {
+      return { fields: appendMarkdownCard(existing, readInput(appendMarkdown)), queryParams: {} };
+    }
+    if (markdown && !options.html) {
+      return { fields: replaceMarkdownBody(existing, String(markdown)), queryParams: {} };
+    }
+    return resolveContent(options);
+  };
+  const { fields, queryParams } = content();
   if (options.cover) {
     options.cover = await resolveCoverImage(api, options.cover);
   }
