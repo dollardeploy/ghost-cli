@@ -62,6 +62,8 @@ Content sections are separated by internal tags — pick one with a **section fl
 | Add with cover + meta           | `ghost-cli post add --blog --title "X" --markdown ./x.md --cover https://cdn/x.png --meta-description "..."` |
 | Edit by id or slug              | `ghost-cli post edit install --title "Installation" --meta-description "How to install"`                     |
 | Move/append a section on edit   | `ghost-cli post edit my-slug --blog` (keeps existing tags)                                                   |
+| Show a post (cover, meta, body) | `ghost-cli post get my-slug` (`--json` for every field)                                                      |
+| Append to the body              | `ghost-cli post edit my-slug --append-markdown ./cta.md` (adds a Markdown card, keeps the rest)              |
 | Add with uploaded local cover   | `ghost-cli post add --blog --title "Launch" --markdown ./x.md --cover ./cover.png`                           |
 | Upload an image, print its URL  | `ghost-cli image upload ./cover.png`                                                                         |
 

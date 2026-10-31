@@ -72,6 +72,7 @@ ghost-cli members remove jane@example.com
 | `post list`              | List posts (scope with a section flag) |
 | `post add --title "..."` | Create a post                          |
 | `post edit <id\|slug>`   | Update an existing post                |
+| `post get <id\|slug>`    | Show cover, excerpt, meta and the body |
 | `image upload <file>`    | Upload a local image, print its URL    |
 
 **Section flags** map to the internal tags that separate content on the site:

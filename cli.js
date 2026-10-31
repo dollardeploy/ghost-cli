@@ -53,6 +53,7 @@ Post commands:
   post list                        List posts (use --blog/--docs/--changelog to scope)
   post add --title "..."           Create a post
   post edit <id|slug>              Update an existing post
+  post get <id|slug>               Show a post: cover, excerpt, meta and its body source
 
 Image commands:
   image upload <file>              Upload a local image, print its hosted URL
@@ -82,6 +83,8 @@ Post options:
   --markdown <file|text>           Body from a Markdown file path or inline text
   --html <file|text>               Body from an HTML file path or inline text
   --content <text>                 Inline Markdown body (alias of --markdown text)
+  --append-markdown <file|text>    [post edit] Add a Markdown card at the end of the
+                                   body, keeping the existing content as it is
   --meta-description <text>        SEO meta description
   --cover <url|file>               Cover image (feature_image): an http(s) URL,
                                    or a local file that is uploaded for you
@@ -407,6 +410,36 @@ function readInput(value) {
   return String(value);
 }
 
+// The Markdown source when the body is a single Markdown card (posts made by this CLI)
+function markdownSource(post) {
+  const doc = post.mobiledoc ? JSON.parse(post.mobiledoc) : null;
+  if (doc && doc.cards.length === 1 && doc.cards[0][0] === "markdown") {
+    return doc.cards[0][1].markdown;
+  }
+  const lexical = post.lexical ? JSON.parse(post.lexical) : null;
+  const children = lexical ? lexical.root.children : [];
+  if (children.length === 1 && children[0].type === "markdown") {
+    return children[0].markdown;
+  }
+  return null;
+}
+
+// Adds a Markdown card after the existing body, in whichever format the post is stored
+function appendMarkdownCard(post, markdown) {
+  if (post.lexical) {
+    const lexical = JSON.parse(post.lexical);
+    lexical.root.children.push({ type: "markdown", version: 1, markdown });
+    return { lexical: JSON.stringify(lexical) };
+  }
+  if (post.mobiledoc) {
+    const doc = JSON.parse(post.mobiledoc);
+    doc.cards.push(["markdown", { cardName: "markdown", markdown }]);
+    doc.sections.push([10, doc.cards.length - 1]);
+    return { mobiledoc: JSON.stringify(doc) };
+  }
+  throw new Error("Post has neither a lexical nor a mobiledoc body to append to");
+}
+
 // Returns the content-related fields and query params for a post add/edit.
 function resolveContent(options) {
   if (options.html) {
@@ -471,12 +504,12 @@ async function resolveCoverImage(api, cover) {
   return uploaded.url;
 }
 
-async function findPost(api, idOrSlug) {
+async function findPost(api, idOrSlug, queryParams = {}) {
   const isId = /^[0-9a-f]{24}$/.test(idOrSlug);
   const selector = isId ? { id: idOrSlug } : { slug: idOrSlug };
   try {
-    return await api.posts.read(selector, { include: "tags" });
-  } catch (e) {
+    return await api.posts.read(selector, { include: "tags", ...queryParams });
+  } catch {
     throw new Error(`No post found for "${idOrSlug}"`);
   }
 }
@@ -554,10 +587,40 @@ async function postAdd(api, options) {
   logger.info(`Created post "${post.title}" (${post.status}) — ${post.url || post.slug}`);
 }
 
-async function postEdit(api, idOrSlug, options) {
-  const existing = await findPost(api, idOrSlug);
+async function postGet(api, idOrSlug, options) {
+  const post = await findPost(api, idOrSlug, { formats: "mobiledoc,lexical,html" });
+  if (options.json) {
+    logger.info(JSON.stringify(post, null, 2));
+    return;
+  }
+  const markdown = markdownSource(post);
+  const lines = [
+    ["id", post.id],
+    ["title", post.title],
+    ["status", post.status],
+    ["url", post.url],
+    ["cover", post.feature_image],
+    ["excerpt", post.custom_excerpt],
+    ["meta-description", post.meta_description],
+    ["tags", (post.tags || []).map(tag => tag.name).join(", ")],
+    ["updated", post.updated_at],
+    ["body", markdown === null ? "html (not a single Markdown card)" : "markdown"]
+  ];
+  logger.info(lines.map(([key, value]) => `${key}: ${value || ""}`).join("\n"));
+  logger.info(`\n${markdown === null ? post.html || "" : markdown}`);
+}
 
-  const { fields, queryParams } = resolveContent(options);
+async function postEdit(api, idOrSlug, options) {
+  const appendMarkdown = options["append-markdown"];
+  const existing = await findPost(
+    api,
+    idOrSlug,
+    appendMarkdown ? { formats: "mobiledoc,lexical" } : {}
+  );
+
+  const { fields, queryParams } = appendMarkdown
+    ? { fields: appendMarkdownCard(existing, readInput(appendMarkdown)), queryParams: {} }
+    : resolveContent(options);
   if (options.cover) {
     options.cover = await resolveCoverImage(api, options.cover);
   }
@@ -636,10 +699,17 @@ const COMMANDS = {
   post: {
     list: { run: (api, args, options) => postList(api, options) },
     add: { run: (api, args, options) => postAdd(api, options) },
-    edit: { needsArg: "id|slug", run: (api, args, options) => postEdit(api, args[0], options) }
+    edit: {
+      needsArg: "id|slug",
+      run: (api, args, options) => postEdit(api, args[0], options)
+    },
+    get: { needsArg: "id|slug", run: (api, args, options) => postGet(api, args[0], options) }
   },
   image: {
-    upload: { needsArg: "file", run: (api, args, options) => imageUpload(api, args[0], options) }
+    upload: {
+      needsArg: "file",
+      run: (api, args, options) => imageUpload(api, args[0], options)
+    }
   }
 };
 
