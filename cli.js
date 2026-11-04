@@ -89,8 +89,6 @@ Post options:
   --meta-description <text>        SEO meta description
   --cover <url|file>               Cover image (feature_image): an http(s) URL,
                                    or a local file that is uploaded for you
-  --share-image <url|file>         Social share image (og_image and twitter_image),
-                                   shown on X, LinkedIn and Slack instead of the cover
   --excerpt <text>                 Custom excerpt
   --tags <a,b,c>                   Extra comma separated tags (added to the section tag)
   --status <draft|published>       Post status (default: draft)
@@ -520,10 +518,6 @@ function applyPostFields(data, options) {
   if (options.cover) {
     data.feature_image = options.cover;
   }
-  if (options["share-image"]) {
-    data.og_image = options["share-image"];
-    data.twitter_image = options["share-image"];
-  }
   if (options.excerpt) {
     data.custom_excerpt = options.excerpt;
   }
@@ -540,27 +534,18 @@ function parseTagList(value) {
     .map(name => ({ name }));
 }
 
-// --cover and --share-image accept an http(s) URL (used as-is) or a local image
-// file, which is uploaded to Ghost first and replaced with the hosted URL.
-async function resolveImage(api, image, label) {
-  if (/^https?:\/\//i.test(image)) {
-    return image;
+// --cover accepts an http(s) URL (used as-is) or a local image file, which is
+// uploaded to Ghost first and replaced with the hosted URL.
+async function resolveCoverImage(api, cover) {
+  if (/^https?:\/\//i.test(cover)) {
+    return cover;
   }
-  if (!fs.existsSync(image)) {
-    throw new Error(`${label} "${image}" is neither an http(s) URL nor an existing file path.`);
+  if (!fs.existsSync(cover)) {
+    throw new Error(`Cover "${cover}" is neither an http(s) URL nor an existing file path.`);
   }
-  const uploaded = await api.images.upload(image);
-  logger.info(`Uploaded ${label.toLowerCase()} → ${uploaded.url}`);
+  const uploaded = await api.images.upload(cover);
+  logger.info(`Uploaded cover image → ${uploaded.url}`);
   return uploaded.url;
-}
-
-async function resolveImages(api, options) {
-  if (options.cover) {
-    options.cover = await resolveImage(api, options.cover, "Cover");
-  }
-  if (options["share-image"]) {
-    options["share-image"] = await resolveImage(api, options["share-image"], "Share image");
-  }
 }
 
 async function findPost(api, idOrSlug, queryParams = {}) {
@@ -620,7 +605,9 @@ async function postAdd(api, options) {
   }
 
   const { fields, queryParams } = resolveContent(options);
-  await resolveImages(api, options);
+  if (options.cover) {
+    options.cover = await resolveCoverImage(api, options.cover);
+  }
   const data = { title: options.title, status: options.status || "draft", ...fields };
   applyPostFields(data, options);
 
@@ -657,7 +644,6 @@ async function postGet(api, idOrSlug, options) {
     ["status", post.status],
     ["url", post.url],
     ["cover", post.feature_image],
-    ["share-image", post.og_image],
     ["excerpt", post.custom_excerpt],
     ["meta-description", post.meta_description],
     ["tags", (post.tags || []).map(tag => tag.name).join(", ")],
@@ -688,7 +674,9 @@ async function postEdit(api, idOrSlug, options) {
     return resolveContent(options);
   };
   const { fields, queryParams } = content();
-  await resolveImages(api, options);
+  if (options.cover) {
+    options.cover = await resolveCoverImage(api, options.cover);
+  }
   // updated_at is required by Ghost for optimistic concurrency on edits.
   const data = { id: existing.id, updated_at: existing.updated_at, ...fields };
   applyPostFields(data, options);
