@@ -97,6 +97,7 @@ tag (existing tags are preserved on edit).
 | `--content <text>`            | Inline Markdown body (alias of `--markdown text`)                                       |
 | `--meta-description <text>`   | SEO meta description                                                                    |
 | `--cover <url\|file>`         | Cover image (`feature_image`): an http(s) URL, or a local file that is uploaded for you |
+| `--share-image <url\|file>`   | Social share image (`og_image` and `twitter_image`), shown on X, LinkedIn and Slack instead of the cover. Same URL or file rules as `--cover` |
 | `--excerpt <text>`            | Custom excerpt                                                                          |
 | `--tags <a,b,c>`              | Extra tags, added alongside the section tag                                             |
 | `--status <draft\|published>` | Status (default: `draft`)                                                               |
