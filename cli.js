@@ -86,6 +86,8 @@ Post options:
   --content <text>                 Inline Markdown body (alias of --markdown text)
   --append-markdown <file|text>    [post edit] Add a Markdown card at the end of the
                                    body, keeping the existing content as it is
+  --meta-title <text>              SEO meta title, shown in search results instead
+                                   of the visible post title
   --meta-description <text>        SEO meta description
   --cover <url|file>               Cover image (feature_image): an http(s) URL,
                                    or a local file that is uploaded for you
@@ -513,6 +515,9 @@ function applyPostFields(data, options) {
   if (options.slug) {
     data.slug = String(options.slug);
   }
+  if (options["meta-title"]) {
+    data.meta_title = String(options["meta-title"]);
+  }
   const metaDescription = options["meta-description"] || options.meta;
   if (metaDescription) {
     data.meta_description = metaDescription;
@@ -659,6 +664,7 @@ async function postGet(api, idOrSlug, options) {
     ["cover", post.feature_image],
     ["share-image", post.og_image],
     ["excerpt", post.custom_excerpt],
+    ["meta-title", post.meta_title],
     ["meta-description", post.meta_description],
     ["tags", (post.tags || []).map(tag => tag.name).join(", ")],
     ["updated", post.updated_at],

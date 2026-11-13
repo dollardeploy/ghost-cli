@@ -95,6 +95,7 @@ tag (existing tags are preserved on edit).
 | `--markdown <file\|text>`     | Body from a Markdown **file path** or inline Markdown text                              |
 | `--html <file\|text>`         | Body from an HTML file path or inline HTML (sent with `?source=html`)                   |
 | `--content <text>`            | Inline Markdown body (alias of `--markdown text`)                                       |
+| `--meta-title <text>`         | SEO meta title (`meta_title`), shown in search results instead of the post title        |
 | `--meta-description <text>`   | SEO meta description                                                                    |
 | `--cover <url\|file>`         | Cover image (`feature_image`): an http(s) URL, or a local file that is uploaded for you |
 | `--share-image <url\|file>`   | Social share image (`og_image` and `twitter_image`), shown on X, LinkedIn and Slack instead of the cover. Same URL or file rules as `--cover` |
@@ -115,6 +116,9 @@ ghost-cli post add --blog --title "We launched" \
 # List and edit
 ghost-cli post list --docs --limit 20
 ghost-cli post edit install-guide --title "Installation guide" --meta-description "How to install"
+
+# Change only the SEO title shown in Google, keep the visible title
+ghost-cli post edit install-guide --meta-title "Install DollarDeploy in 3 steps"
 ```
 
 ### Images

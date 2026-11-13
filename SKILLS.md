@@ -61,6 +61,7 @@ Content sections are separated by internal tags — pick one with a **section fl
 | Add blog post (inline Markdown) | `ghost-cli post add --blog --title "Launch" --content "We **shipped**!"`                                     |
 | Add with cover + meta           | `ghost-cli post add --blog --title "X" --markdown ./x.md --cover https://cdn/x.png --meta-description "..."` |
 | Edit by id or slug              | `ghost-cli post edit install --title "Installation" --meta-description "How to install"`                     |
+| Set only the SEO title          | `ghost-cli post edit my-slug --meta-title "Title shown in Google"` (visible title unchanged)                 |
 | Move/append a section on edit   | `ghost-cli post edit my-slug --blog` (keeps existing tags)                                                   |
 | Show a post (cover, meta, body) | `ghost-cli post get my-slug` (`--json` for every field)                                                      |
 | Append to the body              | `ghost-cli post edit my-slug --append-markdown ./cta.md` (adds a Markdown card, keeps the rest)              |
@@ -69,7 +70,7 @@ Content sections are separated by internal tags — pick one with a **section fl
 | Upload an image, print its URL  | `ghost-cli image upload ./cover.png`                                                                         |
 
 Post fields: `--title`, `--slug`, `--markdown`/`--html`/`--content`,
-`--meta-description`, `--cover` (feature image), `--excerpt`, `--tags a,b`,
+`--meta-title`, `--meta-description`, `--cover` (feature image), `--excerpt`, `--tags a,b`,
 `--status draft|published`.
 
 ## Key Behaviors
